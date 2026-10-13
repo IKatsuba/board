@@ -1,0 +1,15 @@
+{
+	"name": "@chorded/board-darwin-arm64",
+	"version": "0.0.0",
+	"description": "The board binary for macOS arm64; installed by @chorded/board.",
+	"license": "MIT",
+	"os": [
+		"darwin"
+	],
+	"cpu": [
+		"arm64"
+	],
+	"files": [
+		"bin"
+	]
+}

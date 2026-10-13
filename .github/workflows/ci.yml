@@ -1,0 +1,30 @@
+# Tests and checks only: CI has no signing step and no secrets. The release
+# runs on the owner's Mac (tool/release.sh).
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    # arm64 macOS, as the binary is built and run there.
+    runs-on: macos-15
+    env:
+      PRISMA_HIDE_UPDATE_MESSAGE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.3
+      - run: bun install --frozen-lockfile
+      - run: bun run check
+      - run: bun run build:arm64
+      - name: smoke test of the unsigned arm64 binary
+        run: bun test test/binary.test.ts
+        env:
+          BOARD_BIN: build/darwin-arm64/board

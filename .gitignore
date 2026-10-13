@@ -1,0 +1,4 @@
+.board/
+node_modules/
+build/
+src/store/generated/

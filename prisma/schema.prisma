@@ -1,0 +1,131 @@
+generator client {
+  provider        = "prisma-client"
+  output          = "../src/store/generated"
+  previewFeatures = ["partialIndexes", "typedSql"]
+  engineType      = "client"
+  runtime         = "bun"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model claim {
+  task_id   Int     @id @default(autoincrement())
+  holder    String
+  since     String
+  until     String
+  directory String?
+  branch    String?
+  task      task    @relation(fields: [task_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([until], map: "claim_by_until")
+}
+
+model event {
+  id           Int      @id @default(autoincrement())
+  at           String
+  actor        String
+  kind         String
+  project_id   Int?
+  task_id      Int?
+  milestone_id Int?
+  data         String   @default("{}")
+  task         task?    @relation(fields: [project_id, task_id], references: [project_id, id], onDelete: NoAction, onUpdate: NoAction)
+  project      project? @relation(fields: [project_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([kind, id], map: "event_by_kind")
+  @@index([milestone_id, id], map: "event_by_milestone", where: raw("milestone_id IS NOT NULL"))
+  @@index([task_id, id], map: "event_by_task", where: raw("task_id IS NOT NULL"))
+  @@index([project_id, id], map: "event_by_project", where: raw("project_id IS NOT NULL"))
+}
+
+model milestone {
+  id         Int     @id @default(autoincrement())
+  project_id Int
+  name       String
+  delivers   String
+  position   Int
+  created_at String
+  created_by String
+  project    project @relation(fields: [project_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  task       task[]
+
+  @@unique([project_id, id], map: "sqlite_autoindex_milestone_3")
+  @@unique([project_id, position], map: "sqlite_autoindex_milestone_2")
+  @@unique([project_id, name], map: "sqlite_autoindex_milestone_1")
+}
+
+model project {
+  id         Int         @id @default(autoincrement())
+  key        String      @unique(map: "sqlite_autoindex_project_1")
+  name       String
+  directory  String      @unique(map: "sqlite_autoindex_project_2")
+  created_at String
+  created_by String
+  event      event[]
+  milestone  milestone[]
+  task       task[]
+}
+
+model question {
+  id           Int     @id @default(autoincrement())
+  task_id      Int
+  text         String
+  options      String
+  recommended  Int
+  asked_by     String
+  asked_at     String
+  status       String  @default("open")
+  choice       Int?
+  answer       String?
+  answered_by  String?
+  answered_at  String?
+  answered_as  String?
+  validated_by String?
+  validated_at String?
+  task         task    @relation(fields: [task_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([answered_at], map: "question_to_validate", where: raw("INDEX question_to_validate ON question (answered_at)\n  WHERE answered_as = 'delegate' AND validated_at IS NULL"))
+  @@index([task_id, status], map: "question_by_task")
+}
+
+model task {
+  id           Int        @id @default(autoincrement())
+  project_id   Int
+  number       Int
+  title        String
+  body         String     @default("")
+  status       String     @default("ready")
+  priority     Int        @default(2)
+  parent_id    Int?
+  milestone_id Int?
+  created_at   String
+  created_by   String
+  claim        claim?
+  event        event[]
+  question     question[]
+  milestone    milestone? @relation(fields: [project_id, milestone_id], references: [project_id, id], onDelete: NoAction, onUpdate: NoAction)
+  parent       task?      @relation("taskTotask", fields: [project_id, parent_id], references: [project_id, id], onDelete: NoAction, onUpdate: NoAction)
+  children     task[]     @relation("taskTotask")
+  project      project    @relation(fields: [project_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  waited_by    waits[]    @relation("waits_project_id_on_idTotask")
+  waits_on     waits[]    @relation("waits_project_id_task_idTotask")
+
+  @@unique([project_id, id], map: "sqlite_autoindex_task_2")
+  @@unique([project_id, number], map: "sqlite_autoindex_task_1")
+  @@index([milestone_id, status], map: "task_by_milestone", where: raw("milestone_id IS NOT NULL"))
+  @@index([parent_id], map: "task_by_parent", where: raw("parent_id IS NOT NULL"))
+  @@index([project_id, status, priority, number], map: "task_by_status")
+}
+
+model waits {
+  project_id Int
+  task_id    Int
+  on_id      Int
+  on         task @relation("waits_project_id_on_idTotask", fields: [project_id, on_id], references: [project_id, id], onDelete: NoAction, onUpdate: NoAction)
+  task       task @relation("waits_project_id_task_idTotask", fields: [project_id, task_id], references: [project_id, id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([task_id, on_id])
+  @@index([on_id], map: "waits_by_on")
+}

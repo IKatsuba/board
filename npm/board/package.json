@@ -1,0 +1,19 @@
+{
+	"name": "@chorded/board",
+	"version": "0.0.0",
+	"description": "A local task board for coding agents: one SQLite file per machine, read and written with the board command.",
+	"license": "MIT",
+	"os": [
+		"darwin"
+	],
+	"bin": {
+		"board": "bin/board.js"
+	},
+	"files": [
+		"bin"
+	],
+	"optionalDependencies": {
+		"@chorded/board-darwin-arm64": "0.0.0",
+		"@chorded/board-darwin-x64": "0.0.0"
+	}
+}
