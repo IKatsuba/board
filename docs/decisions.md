@@ -673,8 +673,9 @@ Questions still open are at the end of `docs/design.md`.
   - It checks each binary against codesign's `=notarized` requirement
     (`spctl -a -t exec` rejects a bare Mach-O as not an app), then assembles the npm packages and verifies
     the installed copies.
-  - It publishes the two platform packages, then `@chorded/board`, from
-    the owner's npm login. `--dry-run` stops before publishing.
+  - It publishes the two platform packages, waits until npm answers for
+    both at the version (decision 57), then publishes `@chorded/board`,
+    from the owner's npm login. `--dry-run` stops before publishing.
 
   A rerun finishes a run that stopped between publishes, from the packages
   already built. There is no stapling, since a bare Mach-O cannot be stapled:
@@ -1342,3 +1343,31 @@ Questions still open are at the end of `docs/design.md`.
   (a comment split into words, `2>&1` kept as a word, a continuation an
   extra `\` word, a whole heredoc block split wrongly); neither fits the
   prose as written.
+
+## 57. The release waits for the platform packages before the main one (owner; details by the team)
+
+- **Context.** At 1.0.0 `@chorded/board` went live while
+  `@chorded/board-darwin-arm64@1.0.0` was still in npm's validation. In
+  that window npm treats the missing optional dependency as no error:
+  `npm i -g @chorded/board` and `board upgrade` installed the main package
+  with no binary, pruned the old platform package, and left a `board` that
+  could not run, so `board upgrade` could not fix it either.
+- **Options.** (a) The release waits, after publishing the platform
+  packages, until npm answers for both at the version, and publishes the
+  main package only then. (b) A guard in `board upgrade` that refuses a
+  version whose platform package does not answer; rejected by the owner:
+  the fix belongs in the release only.
+- **Choice.** (a), by the owner. The bounds are the team's: `publish_missing`
+  in `tool/release.sh`, on the fresh and the resume path, asks
+  `npm view @chorded/board-darwin-<arch>@<version> version` (the existing
+  `published` helper) up to 60 times, 15 seconds apart (`wait_published`
+  in `tool/release/lib.sh`). Each miss says on stderr which package@version
+  it waits for and the attempt count. A registry failure other than a 404
+  still stops the release, as before.
+- **Consequences.** A release takes up to 15 minutes longer when npm is
+  slow. A timeout leaves the platform packages published and the main one
+  not, and says so; a rerun of `tool/release.sh` resumes from there without
+  building again. A rerun while a platform package still does not answer
+  would try to publish it again, and npm refuses a version it already holds,
+  so the timeout's message says to rerun only once `npm view` answers.
+- **Libraries.** None: a loop over the existing `npm view` check.

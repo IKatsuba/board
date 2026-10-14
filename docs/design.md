@@ -1932,7 +1932,8 @@ v1 targets **macOS only**, arm64 and x64, macOS 13 or newer (Bun's floor).
   2. Read the version from `package.json`. Refuse it if `@chorded/board` has
      it on npm already. If only platform packages have it (a run stopped
      between publishes), publish what is missing from the packages already
-     in `build/release/`, without building again.
+     in `build/release/`, without building again, waiting as in step 11
+     before `@chorded/board`.
   3. Check that `npm whoami` answers (the owner's own login) before anything
      is built.
   4. Find the Developer ID Application identity for team `YQ8ZD2KZ3T` in the
@@ -1949,8 +1950,14 @@ v1 targets **macOS only**, arm64 and x64, macOS 13 or newer (Bun's floor).
      scratch project, and verify and self-test the installed copies.
   10. `--dry-run` stops here and prints where the packages are.
   11. Publish `@chorded/board-darwin-arm64` and `@chorded/board-darwin-x64`,
-      then `@chorded/board` (whose exact-version `optionalDependencies` must
-      resolve). Never unpublish.
+      then wait until `npm view @chorded/board-darwin-<arch>@<version>
+      version` answers for both: npm can hold an accepted package in
+      validation, and a main package published in that window installs with
+      no binary. The wait is 60 attempts 15 seconds apart, each miss saying
+      on stderr which package it waits for. A timeout dies before the main
+      package, saying to rerun once `npm view` answers; the rerun resumes
+      (step 2). Then publish `@chorded/board` (whose exact-version
+      `optionalDependencies` must resolve). Never unpublish (decision 57).
 
   Every check dies with what it read. The last line printed is the published
   version, and it is printed only when everything above it held.
