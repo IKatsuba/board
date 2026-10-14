@@ -39,31 +39,33 @@ members:
       who enforces them, the transaction boundaries per operation, failure and
       contention cases, and open questions. No other files."
   - name: interfaces
-    role: "Interface architect: MCP tool shapes and CLI commands"
+    role: "Interface architect: CLI commands, flags, --json and errors"
     agent: claude
     model: opus
     mode: auto
-    instructions: "You own the surfaces: the MCP tools agents call (names, input and
-      output schemas, error shapes) and the CLI commands a person runs
-      (@cliffy/command layout, flags, output). Design them so an agent can use
-      them without reading docs: small number of tools, unambiguous names,
-      errors that say what to do next. Check what @modelcontextprotocol/server
-      and @cliffy/command support directly before proposing a shape; flag anything that would need a
-      workaround. Write your proposal to
-      docs/design/drafts/<topic>/interfaces.md: each tool and command with
-      example request and response, how they map onto the board's rules, and
-      open questions. No other files."
+    instructions: "You own the surface: the board CLI that agents and a person run
+      (@cliffy/command layout, commands, flags and positionals, human output,
+      --json shapes in Appendix B, error codes and exit codes) and what
+      `board skill` teaches. Design it so an agent can use it from its shell
+      without reading docs: few commands, unambiguous names, text passed
+      safely through the shell, errors that say what to type next. Check what
+      @cliffy/command supports directly before proposing a shape; flag
+      anything that would need a workaround. Write your proposal to
+      docs/design/drafts/<topic>/interfaces.md: each command with an example
+      call and its output, how it maps onto the board's rules, and open
+      questions. No other files."
   - name: runtime
     role: "Runtime architect: processes, concurrency, failure modes, testability"
     agent: claude
     model: opus
     mode: auto
-    instructions: "You own how the system behaves at run time: one MCP server
-      process per agent over stdio sharing one SQLite file, stale claims and
-      crashed agents, clock and ordering assumptions, compiled-binary
-      constraints of bun build --compile, and how the board's rules stay pure
-      TypeScript testable against an in-memory database while the MCP server
-      is tested through @modelcontextprotocol/client over InMemoryTransport. Write your proposal to
+    instructions: "You own how the system behaves at run time: one short board
+      process per CLI call, many of them at once on one SQLite file, plus
+      long-running `board watch` processes; stale claims and crashed agents,
+      clock and ordering assumptions, compiled-binary constraints of bun build
+      --compile, signing and the npm packages, and how the board's rules stay
+      pure TypeScript testable against an in-memory database while commands
+      are tested in process through runCli. Write your proposal to
       docs/design/drafts/<topic>/runtime.md: the module layout (which logic
       lives where), the concurrency and failure scenarios with the expected
       outcome of each, the test plan, and open questions. No other files."
@@ -74,10 +76,11 @@ members:
     mode: agent
     instructions: "You review, you do not design. Read the brief and every draft.
       Look for: contradictions between drafts, invariants nobody enforces, race
-      conditions, failure cases without an outcome, tool or command shapes an
-      agent would misuse, anything that writes our own code where a maintained
-      npm or JSR package would do, anything that reads old formats or migrates
-      (forbidden before the first release), and complexity the brief does not
+      conditions, failure cases without an outcome, command shapes an agent
+      would misuse, anything that writes our own code where a maintained npm
+      or JSR package would do, a schema change that leaves an existing board
+      unreadable without the path CLAUDE.md asks for, a change to commands or
+      --json that breaks callers of the released version, and complexity the brief does not
       require. Report to the lead as a numbered list, most severe first, each
       item naming the draft and section, the concrete scenario that breaks, and
       a suggested fix. Do not edit files."
@@ -110,3 +113,7 @@ One writer per file. A member who needs a change in another's file asks that own
 ## Reporting
 
 The lead writes to main twice: once with the brief if the request is ambiguous or a question belongs to the owner, and once at the end with what was decided, the files changed, the critic findings that were rejected and why, and the open questions left for the owner.
+
+## The board
+
+When main's job names a board task (`BRD-12`), the work is tracked there. Every agent runs `board skill` once before its first board call and writes with `--actor` set to its own name in this team (`@lead`, `@data`, `@interfaces`, `@runtime`, `@critic`). main claims the task for the lead; the lead extends the claim before it ends, files findings under the task, asks the owner's questions with `board ask`, and ends with `board handover … --to main` beside its report. Members comment and file findings under the task and hand over to `@lead`. Nobody on this team closes or cancels a task: main does.

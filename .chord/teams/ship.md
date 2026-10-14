@@ -131,3 +131,7 @@ One writer per file. Other runs of this team may be working on other slices here
 ## Reporting
 
 The lead writes to main when the design does not answer a question the slice raises, or a package does not fit, before deciding anything. It writes once more at the end with the commits, the units and design sections now implemented, what was run and its result, review findings rejected or left open and why, and what is left for the next slice.
+
+## The board
+
+When main's job names a board task (`BRD-12`), the work is tracked there. Every agent runs `board skill` once before its first board call and writes with `--actor` set to its own name in this team (`@lead`, `@developer`, `@reviewer`, `@tester`). main claims the task for the lead; the lead extends the claim before it ends, asks the owner's questions with `board ask`, and ends with `board handover … --to main` beside its report. Members comment on the task and file what they find on the way under it (`board ls --contains` first, then `board add --parent`), and hand over to `@lead`. Nobody on this team closes or cancels a task: main does.
