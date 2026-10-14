@@ -1360,14 +1360,17 @@ Questions still open are at the end of `docs/design.md`.
 - **Choice.** (a), by the owner. The bounds are the team's: `publish_missing`
   in `tool/release.sh`, on the fresh and the resume path, asks
   `npm view @chorded/board-darwin-<arch>@<version> version` (the existing
-  `published` helper) up to 60 times, 15 seconds apart (`wait_published`
-  in `tool/release/lib.sh`). Each miss says on stderr which package@version
+  `published` helper) up to 60 times per platform package, one package
+  after the other, 15 seconds apart (`wait_published` in
+  `tool/release/lib.sh`). Each miss says on stderr which package@version
   it waits for and the attempt count. A registry failure other than a 404
   still stops the release, as before.
-- **Consequences.** A release takes up to 15 minutes longer when npm is
-  slow. A timeout leaves the platform packages published and the main one
-  not, and says so; a rerun of `tool/release.sh` resumes from there without
-  building again. A rerun while a platform package still does not answer
-  would try to publish it again, and npm refuses a version it already holds,
-  so the timeout's message says to rerun only once `npm view` answers.
+- **Consequences.** When npm is slow, a release waits up to about 15
+  minutes per platform package, about 30 for both, plus the time npm takes
+  to answer each query. A timeout leaves the platform packages published
+  and the main one not, and says so; a rerun of `tool/release.sh` resumes
+  from there without building again. A rerun while a platform package
+  still does not answer would try to publish it again, and npm refuses a
+  version it already holds, so the timeout's message says to rerun only once
+  `npm view` answers.
 - **Libraries.** None: a loop over the existing `npm view` check.

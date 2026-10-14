@@ -1953,8 +1953,9 @@ v1 targets **macOS only**, arm64 and x64, macOS 13 or newer (Bun's floor).
       then wait until `npm view @chorded/board-darwin-<arch>@<version>
       version` answers for both: npm can hold an accepted package in
       validation, and a main package published in that window installs with
-      no binary. The wait is 60 attempts 15 seconds apart, each miss saying
-      on stderr which package it waits for. A timeout dies before the main
+      no binary. The wait is up to 60 attempts per package, 15 seconds
+      apart, one package after the other, each miss saying on stderr which
+      package it waits for. A timeout dies before the main
       package, saying to rerun once `npm view` answers; the rerun resumes
       (step 2). Then publish `@chorded/board` (whose exact-version
       `optionalDependencies` must resolve). Never unpublish (decision 57).
