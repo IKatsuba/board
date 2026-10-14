@@ -1,6 +1,7 @@
 #!/bin/bash
 # The release, on the owner's Mac, not in CI: build both binaries, sign,
-# self-test, notarise, pack, verify the installed copies, and publish to npm.
+# self-test, notarise, pack, verify the installed copies, and publish to npm:
+# the platform packages, then, once npm answers for both, the main one.
 #   tool/release.sh            everything, publishing last
 #   tool/release.sh --dry-run  everything up to `npm publish`, then stop;
 #                              it still submits to Apple for notarisation
@@ -22,18 +23,29 @@ esac
 cd "$root"
 export PRISMA_HIDE_UPDATE_MESSAGE=1
 out="$root/build/release"
-packages=(board-darwin-arm64 board-darwin-x64 board)
+platforms=(board-darwin-arm64 board-darwin-x64)
 
+publish_one() {
+	if published "$1" "$version"; then
+		printf 'already published: @chorded/%s@%s\n' "$1" "$version"
+		return
+	fi
+	tarball="$out/tgz/chorded-$1-$version.tgz"
+	[ -f "$tarball" ] || die "no $tarball to publish; nothing of this run is left to resume from"
+	npm publish --access public "$tarball" || die "npm publish of $tarball failed"
+}
+
+# The main package only once both platform packages answer at the version:
+# published while one is still in npm's validation, it installs with no binary.
 publish_missing() {
-	for name in "${packages[@]}"; do
-		if published "$name" "$version"; then
-			printf 'already published: @chorded/%s@%s\n' "$name" "$version"
-			continue
-		fi
-		tarball="$out/tgz/chorded-$name-$version.tgz"
-		[ -f "$tarball" ] || die "no $tarball to publish; nothing of this run is left to resume from"
-		npm publish --access public "$tarball" || die "npm publish of $tarball failed"
+	for name in "${platforms[@]}"; do
+		publish_one "$name"
 	done
+	for name in "${platforms[@]}"; do
+		wait_published "$name" "$version" ||
+			die "@chorded/$name@$version did not answer npm view in 15 minutes; @chorded/board was not published. Rerun tool/release.sh once \`npm view @chorded/$name@$version version\` answers, and it resumes from there"
+	done
+	publish_one board
 }
 
 # 1–3. A clean tree, the version not yet published (or a run stopped between
@@ -98,7 +110,8 @@ if $dry_run; then
 	exit 0
 fi
 
-# 11. The platform packages, then the main one, whose exact-version
-#     optionalDependencies must resolve. Never unpublish.
+# 11. The platform packages, a bounded wait until npm answers for both at the
+#     version, then the main one, whose exact-version optionalDependencies
+#     must resolve. A timeout stops before the main one. Never unpublish.
 publish_missing
 printf '%s\n' "$version"

@@ -36,3 +36,18 @@ published() {
 	case "$diagnostics" in *"code E404"*) return 1 ;; esac
 	die "npm view @chorded/$1@$2 failed: $diagnostics"
 }
+
+# Waits until @chorded/NAME answers npm view at VERSION: npm can hold a
+# package it accepted in validation for minutes, and a main package published
+# in that window installs with no binary. 60 attempts 15 seconds apart, each
+# miss said on stderr; returns 1 when they run out. A registry failure other
+# than a 404 still stops, as in published.
+wait_published() {
+	local attempt
+	for ((attempt = 1; attempt <= 60; attempt++)); do
+		published "$1" "$2" && return 0
+		printf 'release: waiting for @chorded/%s@%s to answer npm view (%d/60)\n' "$1" "$2" "$attempt" >&2
+		[ "$attempt" = 60 ] || sleep 15
+	done
+	return 1
+}
