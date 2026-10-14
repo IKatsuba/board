@@ -6,7 +6,7 @@ and is marked done here when it has passed review and tests. Section names
 below are the design's headings. Nothing here changes the design: a question
 it does not answer goes to the owner before the slice decides it.
 
-Every slice is built by the mvp team as units handed down one line
+Every slice is built by the ship team as units handed down one line
 (developer, then reviewer, then tester). A unit is a module or a tool, in the
 build order given.
 
